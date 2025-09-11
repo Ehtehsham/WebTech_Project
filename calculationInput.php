@@ -3,11 +3,10 @@
 date_default_timezone_set('Asia/Dhaka');
 
 // ----- DATA -----
-// Define available locations (only Dhaka, Chattogram, and Cumilla)
 $locations = ["Dhaka", "Chattogram", "Cumilla"];
 
-// Initialize form fields with empty values
-$routeFrom = $routeTo = $driverName = $driverFee = $fuelCost = $otherCosts = $revenue = '';
+$routeFrom = $routeTo = $driverName = $driverNumber = $driverFee = $fuelCost = $otherCosts = $revenue = '';
+$tollCost = $laborCost = $gateCost = $miscCost = 0;
 $distance = 0;
 $totalCost = 0;
 $profit = 0;
@@ -15,46 +14,51 @@ $errorMessage = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Collect the posted data
     $routeFrom = $_POST['routeFrom'] ?? '';
     $routeTo = $_POST['routeTo'] ?? '';
     $driverName = $_POST['driverName'] ?? '';
-    $driverFee = $_POST['driverFee'] ?? '';
-    $fuelCost = $_POST['fuelCost'] ?? '';
-    $otherCosts = $_POST['otherCosts'] ?? '';
-    $revenue = $_POST['revenue'] ?? '';
+    $driverNumber = $_POST['driverNumber'] ?? '';
+    $driverFee = $_POST['driverFee'] ?? 0;
+    $fuelCost = $_POST['fuelCost'] ?? 0;
+    $otherCosts = $_POST['otherCosts'] ?? 0;
+    $tollCost = $_POST['tollCost'] ?? 0;
+    $laborCost = $_POST['laborCost'] ?? 0;
+    $gateCost = $_POST['gateCost'] ?? 0;
+    $miscCost = $_POST['miscCost'] ?? 0;
+    $revenue = $_POST['revenue'] ?? 0;
 
-    // Prevent negative values for costs
-    if ($driverFee < 0 || $fuelCost < 0 || $otherCosts < 0 || $revenue < 0) {
+    // Prevent negative values
+    if ($driverFee < 0 || $fuelCost < 0 || $otherCosts < 0 || $tollCost < 0 || $laborCost < 0 || $gateCost < 0 || $miscCost < 0 || $revenue < 0) {
         $errorMessage = "Values cannot be negative.";
     }
 
-    // Calculate the distance if "From" and "To" are selected
+    // Distance
     if (!empty($routeFrom) && !empty($routeTo)) {
         $distance = calculateDistance($routeFrom, $routeTo);
     }
 
-    // Ensure that revenue and total costs are numbers (float)
-    $revenue = (float) $revenue; // Cast to float
-    $driverFee = (float) $driverFee; // Cast to float
-    $fuelCost = (float) $fuelCost; // Cast to float
-    $otherCosts = (float) $otherCosts; // Cast to float
+    // Cast to float
+    $driverFee = (float)$driverFee;
+    $fuelCost = (float)$fuelCost;
+    $otherCosts = (float)$otherCosts;
+    $tollCost = (float)$tollCost;
+    $laborCost = (float)$laborCost;
+    $gateCost = (float)$gateCost;
+    $miscCost = (float)$miscCost;
+    $revenue = (float)$revenue;
 
-    // Calculate total cost and profit
-    $totalCost = $driverFee + $fuelCost + $otherCosts;
+    // Total cost + profit
+    $totalCost = $driverFee + $fuelCost + $otherCosts + $tollCost + $laborCost + $gateCost + $miscCost;
     $profit = $revenue - $totalCost;
 }
 
-// Function to calculate the distance based on the trip data
+// Distance function
 function calculateDistance($routeFrom, $routeTo) {
-    // Define distances between locations (in km)
     $distances = [
         "Dhaka" => ["Chattogram" => 253, "Cumilla" => 109],
         "Chattogram" => ["Dhaka" => 253, "Cumilla" => 152],
         "Cumilla" => ["Dhaka" => 109, "Chattogram" => 152]
     ];
-
-    // Return the distance between "From" and "To"
     return $distances[$routeFrom][$routeTo] ?? 0;
 }
 ?>
@@ -65,10 +69,7 @@ function calculateDistance($routeFrom, $routeTo) {
     <meta charset="UTF-8">
     <title>🚚 HaulPro – Truck 1 Trip Calculation</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <!-- Combined CSS for Light and Dark Mode -->
-    <link rel="stylesheet" href="calculation.css"> <!-- Modern CSS for form styling -->
-
+    <link rel="stylesheet" href="calculation.css">
 </head>
 <body>
 <div class="shell">
@@ -87,13 +88,12 @@ function calculateDistance($routeFrom, $routeTo) {
     <div class="card">
         <h2>🚚 Trip Details Form</h2>
 
-        <!-- Show error message if any -->
-        <?php if (isset($errorMessage)): ?>
+        <?php if ($errorMessage): ?>
             <div class="error"><?= htmlspecialchars($errorMessage) ?></div>
         <?php endif; ?>
 
         <form action="calculationInput.php" method="POST">
-            <!-- From Dropdown -->
+            <!-- From -->
             <label for="routeFrom">From:</label>
             <select id="routeFrom" name="routeFrom" required onchange="updateDistance()">
                 <option value="">Select From</option>
@@ -102,7 +102,7 @@ function calculateDistance($routeFrom, $routeTo) {
                 <?php endforeach; ?>
             </select>
 
-            <!-- To Dropdown -->
+            <!-- To -->
             <label for="routeTo">To:</label>
             <select id="routeTo" name="routeTo" required onchange="updateDistance()">
                 <option value="">Select To</option>
@@ -113,11 +113,11 @@ function calculateDistance($routeFrom, $routeTo) {
                 <?php endforeach; ?>
             </select>
 
-            <!-- Distance Display -->
-            <label for="distance">Distance (km):</label>
+            <!-- Distance -->
+            <label>Distance (km):</label>
             <div id="distanceDisplay"><?= htmlspecialchars($distance) ?: 'Select both locations to see distance' ?></div>
 
-            <!-- Revenue Input -->
+            <!-- Revenue -->
             <label for="revenue">Revenue (BDT):</label>
             <input type="number" id="revenue" name="revenue" value="<?= htmlspecialchars($revenue) ?>" required>
 
@@ -125,23 +125,38 @@ function calculateDistance($routeFrom, $routeTo) {
             <label for="driverName">Driver's Name:</label>
             <input type="text" id="driverName" name="driverName" value="<?= htmlspecialchars($driverName) ?>" required>
 
-            <!-- Cost Details -->
+            <label for="driverNumber">Driver's Number:</label>
+            <input type="text" id="driverNumber" name="driverNumber" value="<?= htmlspecialchars($driverNumber) ?>" required>
+
+            <!-- Cost Fields -->
             <label for="driverFee">Driver Fee (BDT):</label>
             <input type="number" id="driverFee" name="driverFee" value="<?= htmlspecialchars($driverFee) ?>" required>
 
             <label for="fuelCost">Fuel Cost (BDT):</label>
             <input type="number" id="fuelCost" name="fuelCost" value="<?= htmlspecialchars($fuelCost) ?>" required>
 
-            <label for="otherCosts">Other Costs (BDT):</label>
+            <label for="tollCost">Toll Cost (BDT):</label>
+            <input type="number" id="tollCost" name="tollCost" value="<?= htmlspecialchars($tollCost) ?>" required>
+
+            <label for="laborCost">Labor Cost (BDT):</label>
+            <input type="number" id="laborCost" name="laborCost" value="<?= htmlspecialchars($laborCost) ?>" required>
+
+            <label for="gateCost">Gate Cost (BDT):</label>
+            <input type="number" id="gateCost" name="gateCost" value="<?= htmlspecialchars($gateCost) ?>" required>
+
+            <label for="miscCost">Other Costs (BDT):</label>
+            <input type="number" id="miscCost" name="miscCost" value="<?= htmlspecialchars($miscCost) ?>" required>
+
+            <!-- Old Other -->
+            <label for="otherCosts">Miscellaneous (BDT):</label>
             <input type="number" id="otherCosts" name="otherCosts" value="<?= htmlspecialchars($otherCosts) ?>" required>
 
-            <!-- Total Cost Display -->
-            <label for="totalCost">Total Cost (BDT):</label>
-            <div id="totalCost"><?= number_format($totalCost) ?: '0.00' ?></div>
+            <!-- Results -->
+            <label>Total Cost (BDT):</label>
+            <div id="totalCost"><?= number_format($totalCost, 2) ?></div>
 
-            <!-- Profit Display -->
-            <label for="profit">Profit (BDT):</label>
-            <div id="profit"><?= number_format($profit) ?: '0.00' ?></div>
+            <label>Profit (BDT):</label>
+            <div id="profit"><?= number_format($profit, 2) ?></div>
 
             <button type="submit" class="btn">Submit</button>
         </form>
@@ -149,14 +164,12 @@ function calculateDistance($routeFrom, $routeTo) {
 </div>
 
 <script>
-    // Update the distance when both From and To are selected
     function updateDistance() {
         var routeFrom = document.getElementById("routeFrom").value;
         var routeTo = document.getElementById("routeTo").value;
         var distanceDisplay = document.getElementById("distanceDisplay");
 
         if (routeFrom && routeTo && routeFrom !== routeTo) {
-            // Calculate the distance using PHP data
             var xhr = new XMLHttpRequest();
             xhr.open('POST', 'calculate_distance.php', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -167,38 +180,36 @@ function calculateDistance($routeFrom, $routeTo) {
             };
             xhr.send('routeFrom=' + routeFrom + '&routeTo=' + routeTo);
         } else {
-            distanceDisplay.textContent = 'Select both locations to see distance'; // Placeholder
+            distanceDisplay.textContent = 'Select both locations to see distance';
         }
     }
 
-    // Dark Mode Toggle Function
     function toggleTheme() {
-        var body = document.body;
-        body.classList.toggle("dark-mode"); // Toggle dark mode class for body
+        document.body.classList.toggle("dark-mode");
     }
 
-    // Display total cost and profit dynamically
-    document.getElementById('driverFee').addEventListener('input', updateTotalCost);
-    document.getElementById('fuelCost').addEventListener('input', updateTotalCost);
-    document.getElementById('otherCosts').addEventListener('input', updateTotalCost);
-    document.getElementById('revenue').addEventListener('input', updateProfit);
+    // Cost calculation
+    let fields = ['driverFee','fuelCost','otherCosts','tollCost','laborCost','gateCost','miscCost','revenue'];
+    fields.forEach(id => {
+        document.getElementById(id).addEventListener('input', updateCalculations);
+    });
 
-    function updateTotalCost() {
-        var driverFee = parseFloat(document.getElementById('driverFee').value) || 0;
-        var fuelCost = parseFloat(document.getElementById('fuelCost').value) || 0;
-        var otherCosts = parseFloat(document.getElementById('otherCosts').value) || 0;
-        var totalCost = driverFee + fuelCost + otherCosts;
+    function updateCalculations() {
+        let driverFee = parseFloat(document.getElementById('driverFee').value) || 0;
+        let fuelCost = parseFloat(document.getElementById('fuelCost').value) || 0;
+        let otherCosts = parseFloat(document.getElementById('otherCosts').value) || 0;
+        let tollCost = parseFloat(document.getElementById('tollCost').value) || 0;
+        let laborCost = parseFloat(document.getElementById('laborCost').value) || 0;
+        let gateCost = parseFloat(document.getElementById('gateCost').value) || 0;
+        let miscCost = parseFloat(document.getElementById('miscCost').value) || 0;
+        let revenue = parseFloat(document.getElementById('revenue').value) || 0;
+
+        let totalCost = driverFee + fuelCost + otherCosts + tollCost + laborCost + gateCost + miscCost;
         document.getElementById('totalCost').textContent = totalCost.toFixed(2);
-        updateProfit();
-    }
 
-    function updateProfit() {
-        var revenue = parseFloat(document.getElementById('revenue').value) || 0;
-        var totalCost = parseFloat(document.getElementById('totalCost').textContent) || 0;
-        var profit = revenue - totalCost;
+        let profit = revenue - totalCost;
         document.getElementById('profit').textContent = profit.toFixed(2);
     }
 </script>
-
 </body>
 </html>
